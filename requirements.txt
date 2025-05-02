@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Cors
+requests
+werkzeug
+pymysql
+python-dotenv
+SpeechRecognition
+pydub
+google-generativeai
