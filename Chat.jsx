@@ -31,7 +31,7 @@ const Chat = () => {
   
   // Typewriter effect for welcome message
   useEffect(() => {
-    const text = "Hi! Welcome to our project";
+    const text = "Hi! how can i assist you !!";
     let i = 0;
     const typing = setInterval(() => {
       if (i < text.length) {
