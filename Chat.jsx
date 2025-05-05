@@ -13,9 +13,10 @@ import {
   Snackbar,
   Alert
 } from '@mui/material';
-import { Mic, Send, Upload, Close } from '@mui/icons-material';
+import { Mic, Send, Upload } from '@mui/icons-material';
 import axios from 'axios';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
+import './Chat.css';
 
 const Chat = () => {
   const [messages, setMessages] = useState([]);
@@ -23,9 +24,28 @@ const Chat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [welcomeMessage, setWelcomeMessage] = useState('');
+  const [showWelcome, setShowWelcome] = useState(true);
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
   
+  // Typewriter effect for welcome message
+  useEffect(() => {
+    const text = "Hi! Welcome to our project";
+    let i = 0;
+    const typing = setInterval(() => {
+      if (i < text.length) {
+        setWelcomeMessage(prev => prev + text.charAt(i));
+        i++;
+      } else {
+        clearInterval(typing);
+        setTimeout(() => setShowWelcome(false), 5000);
+      }
+    }, 100);
+
+    return () => clearInterval(typing);
+  }, []);
+
   // Speech recognition setup
   const {
     transcript,
@@ -59,8 +79,6 @@ const Chat = () => {
     const userMessage = { text: input, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    console.log("input:",input)
-    console.log("message",messages)
     
     try {
       const response = await axios.post(
@@ -70,8 +88,6 @@ const Chat = () => {
           withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
-            // Add if using JWT:
-            // 'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
         }
       );
@@ -100,14 +116,12 @@ const Chat = () => {
     const file = e.target.files[0];
     if (!file) return;
     
-    // Validate file size (10MB max)
-    const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+    const MAX_SIZE = 10 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       showSnackbar(`File too large (max ${MAX_SIZE/1024/1024}MB allowed)`, 'error');
       return;
     }
 
-    // Validate file type
     const validTypes = ['audio/wav', 'audio/mpeg', 'audio/ogg', 'audio/mp4', 'audio/x-m4a'];
     if (!validTypes.includes(file.type)) {
       showSnackbar('Unsupported audio format', 'error');
@@ -127,11 +141,9 @@ const Chat = () => {
         { 
           headers: { 
             'Content-Type': 'multipart/form-data',
-            // Add if using JWT:
-            // 'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
           withCredentials: true,
-          timeout: 30000, // 30 second timeout
+          timeout: 30000,
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round(
               (progressEvent.loaded * 100) / progressEvent.total
@@ -141,7 +153,6 @@ const Chat = () => {
         }
       );
 
-      // Handle different response formats
       const transcription = response.data?.text || 
                           response.data?.transcription || 
                           response.data?.result;
@@ -197,41 +208,25 @@ const Chat = () => {
   }
 
   return (
-    <Box sx={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100vh',
-      width: '100vw',
-      p: 0,
-      m: 0
-    }}>
+    <Box className="chat-container">
       {/* Chat messages */}
-      <Box sx={{
-        flexGrow: 1,
-        overflow: 'auto',
-        p: 3,
-        bgcolor: '#f5f5f5'
-      }}>
+      <Box className="messages-container">
+        {/* Welcome message */}
+        {showWelcome && (
+          <Box className="welcome-message-container">
+            <Typography variant="h4" className="welcome-message">
+              {welcomeMessage}
+              <span className="cursor">|</span>
+            </Typography>
+          </Box>
+        )}
+        
         <Container maxWidth="lg" disableGutters>
           {messages.map((msg, index) => (
-            <Box key={index} sx={{ 
-              display: 'flex',
-              justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-              mb: 2
-            }}>
-              <Paper sx={{
-                p: 2,
-                maxWidth: '70%',
-                bgcolor: msg.sender === 'user' ? 'primary.main' : 'background.paper',
-                color: msg.sender === 'user' ? 'primary.contrastText' : 'text.primary',
-                borderRadius: 4,
-              }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Avatar sx={{ 
-                    width: 32, 
-                    height: 32,
-                    bgcolor: msg.sender === 'user' ? 'primary.dark' : 'secondary.main'
-                  }}>
+            <Box key={index} className={`message-container ${msg.sender}`}>
+              <Paper className={`message-bubble ${msg.sender}`}>
+                <Box className="message-content">
+                  <Avatar className={`message-avatar ${msg.sender}`}>
                     {msg.sender === 'user' ? 'U' : 'AI'}
                   </Avatar>
                   <Typography>{msg.text}</Typography>
@@ -240,13 +235,7 @@ const Chat = () => {
             </Box>
           ))}
           {isLoading && uploadProgress > 0 && (
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: 2,
-              my: 2
-            }}>
+            <Box className="upload-progress">
               <CircularProgress 
                 variant="determinate" 
                 value={uploadProgress} 
@@ -262,22 +251,18 @@ const Chat = () => {
       </Box>
 
       {/* Input area */}
-      <Box sx={{ 
-        p: 2,
-        bgcolor: 'background.paper',
-        borderTop: '1px solid #e0e0e0'
-      }}>
+      <Box className="input-container">
         <Container maxWidth="lg" disableGutters>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Box className="input-inner-container">
             <TextField
               fullWidth
+              className="text-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Type or speak your message..."
               onKeyPress={(e) => e.key === 'Enter' && !isLoading && handleSendMessage()}
               multiline
               maxRows={4}
-              sx={{ bgcolor: 'background.paper' }}
               disabled={isLoading}
             />
 
@@ -290,7 +275,6 @@ const Chat = () => {
                 color={listening ? 'error' : 'default'} 
                 onClick={toggleListening}
                 disabled={isLoading || !browserSupportsSpeechRecognition}
-                aria-label={listening ? 'Stop listening' : 'Start listening'}
               >
                 <Mic />
               </IconButton>
@@ -298,7 +282,7 @@ const Chat = () => {
 
             <input
               accept=".wav,.mp3,.ogg,.m4a"
-              style={{ display: 'none' }}
+              className="file-input"
               id="audio-upload"
               type="file"
               onChange={handleFileUpload}
@@ -306,23 +290,19 @@ const Chat = () => {
               ref={fileInputRef}
             />
             <label htmlFor="audio-upload">
-              <IconButton 
-                component="span" 
-                disabled={isLoading}
-                aria-label="Upload audio file"
-              >
+              <IconButton component="span" disabled={isLoading}>
                 <Upload />
               </IconButton>
             </label>
 
             <Button 
               variant="contained" 
+              className="send-button"
               onClick={handleSendMessage}
               endIcon={isLoading && uploadProgress === 0 ? 
-                <CircularProgress size={24} color="inherit" /> : 
+                <CircularProgress size={24} className="loading-spinner" /> : 
                 <Send />}
               disabled={!input.trim() || isLoading}
-              sx={{ height: '56px', minWidth: '100px' }}
             >
               {isLoading && uploadProgress === 0 ? '' : 'Send'}
             </Button>
@@ -340,7 +320,6 @@ const Chat = () => {
         <Alert 
           onClose={() => setSnackbar({...snackbar, open: false})}
           severity={snackbar.severity}
-          sx={{ width: '100%' }}
         >
           {snackbar.message}
         </Alert>
